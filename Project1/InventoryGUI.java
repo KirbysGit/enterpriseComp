@@ -27,6 +27,7 @@ public class InventoryGUI implements ActionListener {
     private JPanel mainPanel;
     private boolean searchSuccessful = false;
     private JLabel itemIdLabel, quantityLabel, detailsLabel;
+    private static final int MAX_CART_SIZE = 5;
 
     // Constructor
     public InventoryGUI(InventoryLoader loader) {
@@ -236,8 +237,9 @@ public class InventoryGUI implements ActionListener {
                         JOptionPane.ERROR_MESSAGE
                     );
                     
-                    // Clear the item ID field and result area
+                    // Clear both item ID and quantity fields
                     itemIdField.setText("");
+                    quantityField.setText("");
                     resultArea.setText("");
                     searchSuccessful = false;
                     updateButtonStates();
@@ -274,6 +276,10 @@ public class InventoryGUI implements ActionListener {
                 
                 resultArea.setText(result.toString());
                 updateButtonStates();
+
+                // On successful search, increment the item number
+                currentItemNumber++;
+                updateLabels();  // This updates all labels including Details
             } else {
                 // Show error dialog for items not found in inventory
                 JOptionPane.showMessageDialog(
@@ -293,7 +299,16 @@ public class InventoryGUI implements ActionListener {
                 // as the search was unsuccessful
             }
         } else if (e.getSource() == addToCartButton) {
-            // Add item to cart
+            if (cart.size() >= MAX_CART_SIZE) {
+                JOptionPane.showMessageDialog(
+                    frame,
+                    "Cart is full (5 items maximum). Please checkout, delete items, or start a new order.",
+                    "Nile Dot Com - Cart Full",
+                    JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
+
             String itemId = itemIdField.getText().trim();
             String quantityText = quantityField.getText().trim();
 
@@ -301,35 +316,26 @@ public class InventoryGUI implements ActionListener {
                 int quantity = Integer.parseInt(quantityText);
                 InventoryItem item = inventoryLoader.getInventory().get(itemId);
 
-                if (item == null) {
-                    resultArea.setText("Error: Item ID " + itemId + " not found.");
-                } else if (!item.isInStock() || item.getQuantity() < quantity) {
-                    resultArea.setText("Error: Insufficient stock for Item ID " + itemId + ".");
-                } else {
-                    // Add item to cart and update inventory
-                    cart.add(new CartItem(item, quantity));
+                if (item != null && item.isInStock() && item.getQuantity() >= quantity) {
+                    // Add item to cart with current cart size + 1 as the item number
+                    cart.add(new CartItem(item, quantity, cart.size() + 1));
                     item.setQuantity(item.getQuantity() - quantity);
 
                     // Update displays
                     updateCartDisplay();
                     updateSubtotalLabel();
                     
-                    // Increment item number and update labels
-                    currentItemNumber++;
-                    updateLabels();
-
-                    // Clear input fields
+                    // Clear only input fields, keep the result area (details) displayed
                     itemIdField.setText("");
                     quantityField.setText("");
                     
-                    // Note: We don't clear or update the resultArea here anymore
-                    // This keeps the previous search results visible
+                    // Reset search status
+                    searchSuccessful = false;
+                    updateButtonStates();
                 }
             } catch (NumberFormatException ex) {
                 resultArea.setText("Error: Invalid quantity. Please enter a valid number.");
             }
-            searchSuccessful = false; // Reset search status after adding item
-            updateButtonStates();
         } else if (e.getSource() == checkoutButton) {
             handleCheckout();
         } else if (e.getSource() == emptyCartButton) {
@@ -344,15 +350,34 @@ public class InventoryGUI implements ActionListener {
     private void updateCartDisplay() {
         if (cart.isEmpty()) {
             cartArea.setText("Your Shopping Cart is Currently Empty");
-            updateButtonStates();
         } else {
-            StringBuilder cartContent = new StringBuilder("Current Cart:\n");
+            StringBuilder cartContent = new StringBuilder();
+            cartContent.append(String.format("Your Shopping Cart Currently Contains %d Item(s)\n\n", cart.size()));
+            
+            // Create a separator line using regular dashes
+            String separator = "-".repeat(80) + "\n";
+            
             for (CartItem cartItem : cart) {
-                cartContent.append(cartItem).append("\n");
+                InventoryItem item = cartItem.getItem();
+                double unitPrice = item.getPrice();
+                int discountPercent = getDiscountPercentage(cartItem.getQuantity());
+                double totalPrice = cartItem.getQuantity() * unitPrice * (1 - discountPercent/100.0);
+                
+                cartContent.append(String.format("Item %d - SKU: %s, Desc: %s, Price Ea. $%.2f, Qty: %d, Total: $%.2f\n",
+                    cartItem.getItemNumber(),
+                    item.getItemID(),
+                    item.getDescription(),
+                    unitPrice,
+                    cartItem.getQuantity(),
+                    totalPrice));
+                
+                cartContent.append(separator);
             }
+            
             cartArea.setText(cartContent.toString());
-            updateButtonStates();
+            cartArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
         }
+        updateButtonStates();
     }
 
     private void handleCheckout() {
@@ -447,14 +472,40 @@ public class InventoryGUI implements ActionListener {
         // Clear cart and reset GUI
         cart.clear();
         currentItemNumber = 1;
+        
+        // Clear and disable input fields
         itemIdField.setText("");
         quantityField.setText("");
         resultArea.setText("");
+        itemIdField.setEnabled(false);
+        quantityField.setEnabled(false);
+        
+        // Update displays
         updateCartDisplay();
         updateLabels();
         updateSubtotalLabel();
+        
+        // Disable most buttons, only leave Empty Cart and Exit enabled
+        searchButton.setEnabled(false);
+        addToCartButton.setEnabled(false);
+        deleteLastItemButton.setEnabled(false);
+        checkoutButton.setEnabled(false);
+        
+        // Keep these buttons enabled
+        emptyCartButton.setEnabled(true);
+        exitButton.setEnabled(true);
+        
+        // Update button appearances
+        searchButton.setBackground(new Color(200, 200, 200));
+        addToCartButton.setBackground(new Color(200, 200, 200));
+        deleteLastItemButton.setBackground(new Color(200, 200, 200));
+        checkoutButton.setBackground(new Color(200, 200, 200));
+        
+        // Keep enabled buttons colored
+        emptyCartButton.setBackground(new Color(70, 130, 180));
+        exitButton.setBackground(new Color(180, 70, 70)); // Keep exit button red
+        
         searchSuccessful = false;
-        updateButtonStates();
     }
 
     private double calculateSubtotal() {
@@ -512,14 +563,16 @@ public class InventoryGUI implements ActionListener {
     }
 
     private void updateLabels() {
-        // Update specific labels
+        // Update input field labels
         itemIdLabel.setText(String.format("Enter Item ID for Item #%d:", currentItemNumber));
         quantityLabel.setText(String.format("Enter Quantity for Item #%d:", currentItemNumber));
-        detailsLabel.setText(String.format("Details for Item #%d:", currentItemNumber));
         
         // Update button texts
         searchButton.setText(String.format("Search for Item #%d", currentItemNumber));
         addToCartButton.setText(String.format("Add Item #%d to Cart", currentItemNumber));
+        
+        // Details label stays at current number
+        detailsLabel.setText(String.format("Details for Item #%d:", currentItemNumber - 1));
     }
 
     private void updateSubtotalLabel() {
@@ -529,7 +582,7 @@ public class InventoryGUI implements ActionListener {
     }
 
     private void handleEmptyCart() {
-        if (!cart.isEmpty()) {
+        if (!cart.isEmpty() || !itemIdField.isEnabled()) {  // Check if cart is not empty OR fields are disabled
             int result = JOptionPane.showConfirmDialog(
                 frame,
                 "Are you sure you want to empty the cart and start a new order?",
@@ -538,14 +591,38 @@ public class InventoryGUI implements ActionListener {
             );
             
             if (result == JOptionPane.YES_OPTION) {
+                // Clear cart and reset everything
                 cart.clear();
                 currentItemNumber = 1;
+                
+                // Clear and re-enable input fields
                 itemIdField.setText("");
                 quantityField.setText("");
                 resultArea.setText("");
+                itemIdField.setEnabled(true);
+                quantityField.setEnabled(true);
+                
+                // Re-enable and reset buttons
+                searchButton.setEnabled(true);
+                addToCartButton.setEnabled(false);
+                deleteLastItemButton.setEnabled(false);
+                checkoutButton.setEnabled(false);
+                emptyCartButton.setEnabled(true);
+                exitButton.setEnabled(true);
+                
+                // Reset button colors
+                searchButton.setBackground(new Color(70, 130, 180));
+                addToCartButton.setBackground(new Color(200, 200, 200));
+                deleteLastItemButton.setBackground(new Color(200, 200, 200));
+                checkoutButton.setBackground(new Color(200, 200, 200));
+                emptyCartButton.setBackground(new Color(70, 130, 180));
+                exitButton.setBackground(new Color(180, 70, 70));
+                
+                // Update displays
                 updateCartDisplay();
                 updateLabels();
                 updateSubtotalLabel();
+                searchSuccessful = false;
                 updateButtonStates();
             }
         }
@@ -596,23 +673,17 @@ public class InventoryGUI implements ActionListener {
     // Update the button states method
     private void updateButtonStates() {
         boolean cartHasItems = !cart.isEmpty();
+        boolean cartIsFull = cart.size() >= MAX_CART_SIZE;
         
-        // Search button is always enabled unless a search was successful
-        searchButton.setEnabled(!searchSuccessful);
-        
-        // Add to Cart button is enabled only after successful search and valid quantity
-        boolean validQuantity = false;
-        try {
-            int qty = Integer.parseInt(quantityField.getText().trim());
-            validQuantity = qty > 0;
-        } catch (NumberFormatException e) {
-            validQuantity = false;
-        }
-        addToCartButton.setEnabled(searchSuccessful && validQuantity);
+        // Search and Add buttons are only enabled if cart isn't full
+        searchButton.setEnabled(!searchSuccessful && !cartIsFull);
+        addToCartButton.setEnabled(searchSuccessful && !cartIsFull && hasValidInput());
         
         // Cart-dependent buttons
         deleteLastItemButton.setEnabled(cartHasItems);
         checkoutButton.setEnabled(cartHasItems);
+        emptyCartButton.setEnabled(true);
+        exitButton.setEnabled(true);
         
         // Update button appearances
         searchButton.setBackground(searchButton.isEnabled() ? 
@@ -623,6 +694,15 @@ public class InventoryGUI implements ActionListener {
             new Color(70, 130, 180) : new Color(200, 200, 200));
         checkoutButton.setBackground(checkoutButton.isEnabled() ? 
             new Color(70, 130, 180) : new Color(200, 200, 200));
+        
+        // If cart is full, disable input fields
+        itemIdField.setEnabled(!cartIsFull);
+        quantityField.setEnabled(!cartIsFull);
+        
+        // If cart is full, show message in result area
+        if (cartIsFull) {
+            resultArea.setText("Cart is full (5 items maximum). Please checkout, delete items, or start a new order.");
+        }
     }
 
     // Calculate discount percentage based on quantity
