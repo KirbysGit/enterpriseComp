@@ -1,3 +1,10 @@
+/*
+    Name : Colin Kirby
+    Course : CNT 4714 - Spring 2025
+    Assignment Title : Project 1 - An Event-driven Enterprise Simulation
+    Date : Monday, January 20, 2025
+*/
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -14,22 +21,65 @@ import java.awt.Color;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.DocumentEvent;
 
+/**
+ * The main GUI class for the Nile Dot Com e-store application.
+ * This class implements the graphical user interface for the shopping system, including:
+ * - Item entry and search functionality
+ * - Shopping cart management
+ * - Order processing and checkout
+ * - Transaction logging
+ */
 public class InventoryGUI implements ActionListener {
+    /** The main application window */
     private JFrame frame;
+    
+    /** Text fields for item ID and quantity input */
     private JTextField itemIdField, quantityField;
+    
+    /** Control buttons for various shopping actions */
     private JButton searchButton, addToCartButton, checkoutButton, emptyCartButton, exitButton, deleteLastItemButton;
+    
+    /** Text areas for displaying item details and cart contents */
     private JTextArea resultArea, cartArea;
+    
+    /** Manages the inventory data and operations */
     private InventoryLoader inventoryLoader;
-    private ArrayList<CartItem> cart; // Shopping cart
+    
+    /** List to store items currently in the shopping cart */
+    private ArrayList<CartItem> cart;
+    
+    /** Tax rate constant for price calculations */
     private static final double TAX_RATE = 0.06; // 6% tax rate
+    
+    /** Tracks the current item number being processed */
     private int currentItemNumber = 1;
+    
+    /** Label for displaying the current subtotal */
     private JLabel subtotalLabel;
+    
+    /** The main container panel for all GUI components */
     private JPanel mainPanel;
+    
+    /** Flag indicating if the last search was successful */
     private boolean searchSuccessful = false;
+    
+    /** Labels for input fields and details section */
     private JLabel itemIdLabel, quantityLabel, detailsLabel;
+    
+    /** Maximum number of items allowed in the cart */
     private static final int MAX_CART_SIZE = 5;
 
-    // Constructor
+    /**
+     * Constructs the main GUI window and initializes all components.
+     * Sets up:
+     * - Main window and layout
+     * - Input fields and labels
+     * - Shopping cart display
+     * - Control buttons
+     * - Event listeners
+     * 
+     * @param loader The InventoryLoader instance containing the store's inventory data
+     */
     public InventoryGUI(InventoryLoader loader) {
         this.inventoryLoader = loader;
         this.cart = new ArrayList<>();
@@ -216,6 +266,13 @@ public class InventoryGUI implements ActionListener {
         updateButtonStates();
     }
 
+    /**
+     * Creates a styled button with consistent appearance.
+     * Applies standard colors, borders, and padding to maintain UI consistency.
+     *
+     * @param text The text to display on the button
+     * @return A JButton with the standard styling applied
+     */
     private JButton createStyledButton(String text) {
         JButton button = new JButton(text);
         button.setBackground(new Color(70, 130, 180));
@@ -227,6 +284,18 @@ public class InventoryGUI implements ActionListener {
         return button;
     }
 
+    /**
+     * Handles all button click events in the GUI.
+     * Implements the ActionListener interface to process user interactions:
+     * - Search button: Looks up item details
+     * - Add to Cart: Adds current item to cart
+     * - Checkout: Processes the order
+     * - Empty Cart: Clears the current order
+     * - Delete Last Item: Removes most recent item
+     * - Exit: Closes the application
+     *
+     * @param e The ActionEvent containing information about which button was clicked
+     */
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == searchButton) {
@@ -394,6 +463,13 @@ public class InventoryGUI implements ActionListener {
         }
     }
 
+    /**
+     * Updates the shopping cart display panel.
+     * - Updates the header to show current item count
+     * - Displays each item in the cart with full details
+     * - Maintains empty slots up to MAX_CART_SIZE
+     * - Updates button states based on cart contents
+     */
     private void updateCartDisplay() {
         // Get the cart items panel
         JPanel cartPanel = (JPanel) mainPanel.getComponent(1);
@@ -449,6 +525,14 @@ public class InventoryGUI implements ActionListener {
         updateButtonStates();
     }
 
+    /**
+     * Processes the checkout operation.
+     * - Generates a unique transaction ID
+     * - Creates an invoice with all items and totals
+     * - Logs the transaction to transactions.csv
+     * - Displays the final invoice to the user
+     * - Disables appropriate UI elements after checkout
+     */
     private void handleCheckout() {
         if (cart.isEmpty()) {
             return;
@@ -574,6 +658,11 @@ public class InventoryGUI implements ActionListener {
         searchSuccessful = false;
     }
 
+    /**
+     * Calculates the current subtotal of all items in the cart.
+     * 
+     * @return The sum of all item prices multiplied by their quantities
+     */
     private double calculateSubtotal() {
         double subtotal = 0;
         for (CartItem item : cart) {
@@ -582,11 +671,26 @@ public class InventoryGUI implements ActionListener {
         return subtotal;
     }
 
+    /**
+     * Calculates any applicable discount based on the subtotal.
+     * 
+     * @param subtotal The current cart subtotal
+     * @return The discount amount (10% for purchases over $100)
+     */
     private double calculateDiscount(double subtotal) {
         // Simple discount rule: 10% off for purchases over $100
         return subtotal >= 100 ? subtotal * 0.10 : 0;
     }
 
+    /**
+     * Generates a formatted invoice string containing all order details.
+     * 
+     * @param subtotal The order subtotal
+     * @param discount Any applicable discount
+     * @param tax The calculated tax amount
+     * @param total The final total including tax and discounts
+     * @return A formatted string containing the complete invoice
+     */
     private String generateInvoice(double subtotal, double discount, double tax, double total) {
         StringBuilder invoice = new StringBuilder("=== INVOICE ===\n\n");
         invoice.append("Items:\n");
@@ -603,6 +707,14 @@ public class InventoryGUI implements ActionListener {
         return invoice.toString();
     }
 
+    /**
+     * Logs the transaction details to the transactions.csv file.
+     * 
+     * @param subtotal The order subtotal
+     * @param discount Any applied discount
+     * @param tax The tax amount
+     * @param total The final total
+     */
     private void logTransaction(double subtotal, double discount, double tax, double total) {
         String timestamp = String.valueOf(System.currentTimeMillis());
         try (FileWriter fw = new FileWriter("transactions.csv", true);
@@ -628,6 +740,10 @@ public class InventoryGUI implements ActionListener {
         }
     }
 
+    /**
+     * Updates all input field labels to reflect the current item number.
+     * Ensures labels stay synchronized with the current operation.
+     */
     private void updateLabels() {
         // Update input field labels based on cart size + 1, but never exceed 5
         int nextItemNumber = Math.min(cart.size() + 1, 5);
@@ -640,6 +756,10 @@ public class InventoryGUI implements ActionListener {
         detailsLabel.setText(String.format("Details for Item #%d:", currentItemNumber));
     }
 
+    /**
+     * Updates the subtotal label with the current cart total.
+     * Includes the item count and formatted currency amount.
+     */
     private void updateSubtotalLabel() {
         double subtotal = 0.0;
         for (CartItem item : cart) {
@@ -653,6 +773,13 @@ public class InventoryGUI implements ActionListener {
             cart.size(), formatCurrency(subtotal)));
     }
 
+    /**
+     * Handles the empty cart operation.
+     * - Confirms with user before proceeding
+     * - Clears all cart items
+     * - Resets UI elements to initial state
+     * - Re-enables input fields and buttons
+     */
     private void handleEmptyCart() {
         if (!cart.isEmpty() || !itemIdField.isEnabled()) {
             int result = JOptionPane.showConfirmDialog(
@@ -704,6 +831,13 @@ public class InventoryGUI implements ActionListener {
         }
     }
 
+    /**
+     * Handles the deletion of the last item added to the cart.
+     * - Removes the most recently added item
+     * - Returns the quantity to inventory
+     * - Updates all displays and labels
+     * - Updates button states
+     */
     private void handleDeleteLastItem() {
         if (!cart.isEmpty()) {
             CartItem lastItem = cart.remove(cart.size() - 1);
@@ -727,7 +861,11 @@ public class InventoryGUI implements ActionListener {
         }
     }
 
-    // Add new method to check if input fields are valid
+    /**
+     * Checks if the current input fields contain valid data.
+     * 
+     * @return true if both item ID and quantity are valid, false otherwise
+     */
     private boolean hasValidInput() {
         String itemId = itemIdField.getText().trim();
         String quantity = quantityField.getText().trim();
@@ -744,7 +882,13 @@ public class InventoryGUI implements ActionListener {
         return false;
     }
 
-    // Update the button states method
+    /**
+     * Updates the enabled/disabled states of all buttons based on:
+     * - Current cart state
+     * - Search status
+     * - Input field validity
+     * Also updates button appearances to reflect their states.
+     */
     private void updateButtonStates() {
         boolean cartHasItems = !cart.isEmpty();
         boolean cartIsFull = cart.size() >= MAX_CART_SIZE;
@@ -774,7 +918,12 @@ public class InventoryGUI implements ActionListener {
         quantityField.setEnabled(!cartIsFull);
     }
 
-    // Calculate discount percentage based on quantity
+    /**
+     * Calculates the discount percentage based on quantity ordered.
+     * 
+     * @param quantity The number of items ordered
+     * @return The discount percentage (0, 10, 15, or 20)
+     */
     private int getDiscountPercentage(int quantity) {
         if (quantity >= 15) return 20;
         if (quantity >= 10) return 15;
@@ -782,7 +931,12 @@ public class InventoryGUI implements ActionListener {
         return 0;
     }
 
-    // Format currency
+    /**
+     * Formats a number as a currency string with $ and 2 decimal places.
+     * 
+     * @param amount The amount to format
+     * @return A formatted currency string (e.g., "$10.99")
+     */
     private String formatCurrency(double amount) {
         return String.format("$%.2f", amount);
     }
