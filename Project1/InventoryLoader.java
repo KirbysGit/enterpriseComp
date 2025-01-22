@@ -1,3 +1,10 @@
+/*
+    Name : Colin Kirby
+    Course : CNT 4714 - Spring 2025
+    Assignment Title : Project 1 - An Event-driven Enterprise Simulation
+    Date : Monday, January 20, 2025
+*/
+
 import java.io.*;
 import java.util.HashMap;
 
