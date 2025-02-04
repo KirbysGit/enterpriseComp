@@ -1,3 +1,10 @@
+/*
+    Name : Colin Kirby
+    Course : CNT 4714 - Spring 2025
+    Assignment Title : Project 1 - An Event-driven Enterprise Simulation
+    Date : Monday, January 20, 2025
+*/
+
 /**
  * Represents an item in the inventory system with its associated properties.
  * This class manages the core item data including stock status, quantity, and pricing.
