@@ -44,12 +44,10 @@ public class Switch {
      * Double locking pattern ensures all waiting trains are notified
      */
     public void release() {
-        lock.unlock();
-        lock.lock();
         try {
-            condition.signalAll();  // Notify all waiting trains that the switch is available
+            condition.signalAll();  // Signal while still holding the lock
         } finally {
-            lock.unlock();
+            lock.unlock();  // Always release the lock
         }
     }
 

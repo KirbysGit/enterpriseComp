@@ -15,8 +15,14 @@ import java.util.concurrent.TimeUnit;
 public class TrainYardSimulator {
     private static final int MAX_THREADS = 30;  // Maximum number of concurrent trains
     private final Map<Integer, Switch> switches = new HashMap<>();  // All switches in the yard
-    private final List<Train> trains = new ArrayList<>();          // All trains to be dispatched
+    private final List<Train> trains = new ArrayList<>();
     private final Map<String, List<Switch>> routeCache = new HashMap<>();  // Cache of valid routes
+    private final Set<Integer> dispatchedTrains = new HashSet<>();
+    private final Set<Integer> permanentHoldTrains = new HashSet<>();
+
+    public TrainYardSimulator() {
+        // No need to set up logging in this version
+    }
 
     /**
      * Loads the yard configuration from CSV file.
@@ -63,14 +69,12 @@ public class TrainYardSimulator {
                 int inboundTrack = Integer.parseInt(parts[1]);
                 int outboundTrack = Integer.parseInt(parts[2]);
 
-                // Look up the required route for this train
                 String routeKey = inboundTrack + "-" + outboundTrack;
                 List<Switch> requiredSwitches = routeCache.get(routeKey);
                 
                 if (requiredSwitches != null) {
-                    trains.add(new Train(trainNumber, inboundTrack, outboundTrack, requiredSwitches));
+                    trains.add(new Train(trainNumber, inboundTrack, outboundTrack, requiredSwitches, this));
                 } else {
-                    // No valid route exists for this train
                     System.out.println("Warning: No valid route found for Train #" + trainNumber +
                                      " from track " + inboundTrack + " to " + outboundTrack);
                 }
@@ -82,9 +86,10 @@ public class TrainYardSimulator {
      * Starts the simulation by creating a thread pool and submitting all trains
      */
     public void startSimulation() {
+        System.out.println("$ $ $ TRAIN MOVEMENT SIMULATION BEGINS........... $ $ $");
+        
         ExecutorService executor = Executors.newFixedThreadPool(MAX_THREADS);
         
-        // Submit all trains to the executor
         for (Train train : trains) {
             executor.submit(train);
         }
@@ -99,6 +104,38 @@ public class TrainYardSimulator {
         } catch (InterruptedException e) {
             executor.shutdownNow();
             Thread.currentThread().interrupt();
+        }
+        
+        System.out.println("$ $ $ SIMULATION ENDS $ $ $");
+        printFinalStatus();
+    }
+
+    public void markTrainDispatched(int trainNumber) {
+        dispatchedTrains.add(trainNumber);
+    }
+
+    public void markTrainPermanentHold(int trainNumber) {
+        permanentHoldTrains.add(trainNumber);
+    }
+
+    private void printFinalStatus() {
+        System.out.println("\nFinal Train Status Report:");
+        System.out.println("Train Number | Inbound Track | Outbound Track | Status");
+        System.out.println("------------------------------------------------");
+        
+        // Sort trains by number for consistent output
+        List<Train> trainList = new ArrayList<>(trains);
+        trainList.sort(Comparator.comparingInt(Train::getTrainNumber));
+        
+        for (Train train : trainList) {
+            int trainNumber = train.getTrainNumber();
+            String status = permanentHoldTrains.contains(trainNumber) ? "Permanent Hold" : 
+                          dispatchedTrains.contains(trainNumber) ? "Dispatched" : "Incomplete";
+            System.out.printf("%-12d | %-13d | %-14d | %s%n",
+                trainNumber,
+                train.getInboundTrack(),
+                train.getOutboundTrack(),
+                status);
         }
     }
 
