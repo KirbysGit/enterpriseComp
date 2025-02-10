@@ -12,7 +12,6 @@
  */
 package Project2;
 
-
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.Condition;
 
