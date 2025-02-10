@@ -1,4 +1,17 @@
+/*
+ * Name: Colin Kirby
+ * Course: CNT 4714 Spring 2025
+ * Assignment Title: Project 2 - Multi-Threaded Programming in Java
+ * Date: February 7, 2025
+ * 
+ * Class: Switch.java
+ * 
+ * Description:
+ * This class represents a switch in the train yard that can be locked by trains.
+ * Uses ReentrantLock for thread-safe access control.
+ */
 package Project2;
+
 
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.Condition;
@@ -44,8 +57,9 @@ public class Switch {
      * Double locking pattern ensures all waiting trains are notified
      */
     public void release() {
+        lock.lock();  // Ensure we have the lock before signaling
         try {
-            condition.signalAll();  // Signal while still holding the lock
+            condition.signalAll();  // Signal all waiting trains
         } finally {
             lock.unlock();  // Always release the lock
         }

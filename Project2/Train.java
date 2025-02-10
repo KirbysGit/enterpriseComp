@@ -1,3 +1,17 @@
+/*
+ * Name: Colin Kirby
+ * Course: CNT 4714 Spring 2025
+ * Assignment Title: Project 2 - Multi-Threaded Programming in Java
+ * Date: February 7, 2025
+ * 
+ * Class: Train.java
+ * 
+ * Description:
+ * This class represents a train that needs to move through the switch yard.
+ * It implements the Runnable interface to allow concurrent execution of train movements.
+ * 
+ */
+
 package Project2;
 
 import java.util.List;
@@ -122,6 +136,7 @@ public class Train implements Runnable {
      * Releases all held switch locks in reverse order to prevent deadlocks
      */
     private void releaseLocks() {
+        // Release locks in reverse order (last acquired to first acquired)
         for (int i = requiredSwitches.size() - 1; i >= 0; i--) {
             Switch switchLock = requiredSwitches.get(i);
             if (switchLock.getLock().isHeldByCurrentThread()) {
@@ -136,7 +151,8 @@ public class Train implements Runnable {
      */
     private void moveTrain() {
         try {
-            Thread.sleep(1000);  // Simulate movement time through switches
+            // Simulate train movement through switches
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
